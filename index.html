@@ -38,11 +38,13 @@
 
             stazioni.forEach(s => {
                 positions.push(s.pos);
-                const marker = new atlas.HtmlMarker({
-                    position: s.pos,
-                    text: "⛑️",
-                    color: "red"
-                });
+               const marker = new atlas.HtmlMarker({
+    position: s.pos,
+    htmlContent: `<div style="display:flex; align-items:center; background:white; border-radius:4px; padding:4px; box-shadow:0 0 4px rgba(0,0,0,0.2); font-size:14px;">
+        <span style="font-size:20px; margin-right:5px;">⛑️</span> 
+        ${s.titolo}
+    </div>`
+});
                 map.markers.add(marker);
 
                 const popup = new atlas.Popup({
