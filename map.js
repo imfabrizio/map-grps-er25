@@ -1,3 +1,4 @@
+
 const subscriptionKey = 'BAqgYkgcYKIiyJfr7BOGSIFySA2Yw14pckF6xDum7uUvMptUSF19JQQJ99BFAC5RqLJioKNfAAAgAZMP45SF';
 
 const stazioni = [
@@ -47,12 +48,19 @@ map.events.add('ready', async function () {
         });
     });
 
-    // Calcola il percorso a tratte con diversi travelMode
+    // Percorsi segmentati
     for (let i = 0; i < stazioni.length - 1; i++) {
         const from = stazioni[i].pos;
         const to = stazioni[i + 1].pos;
-        const travelMode = (i < 2) ? 'car' : 'pedestrian';
 
+        if (i === 3) {
+            // Tratto non tracciabile: linea manuale
+            const manualLine = new atlas.data.Feature(new atlas.data.LineString([from, to]));
+            datasource.add(manualLine);
+            continue;
+        }
+
+        const travelMode = (i < 2) ? 'car' : 'pedestrian';
         const routeUrl = `https://atlas.microsoft.com/route/directions/json?api-version=1.0&subscription-key=${subscriptionKey}` +
             `&query=${from[1]},${from[0]}:${to[1]},${to[0]}&travelMode=${travelMode}`;
 
@@ -76,3 +84,17 @@ const styleSelector = document.getElementById('mapStyleSelect');
 styleSelector.addEventListener('change', () => {
     map.setStyle(styleSelector.value);
 });
+
+// Navigazione verso punto
+function vaiAPunto(coord, label) {
+    map.setCamera({ center: coord, zoom: 18 });
+
+    if (/Mobi|Android/i.test(navigator.userAgent)) {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const mapsUrl = isIOS
+            ? `http://maps.apple.com/?daddr=${coord[1]},${coord[0]}&dirflg=w`
+            : `https://www.google.com/maps/dir/?api=1&destination=${coord[1]},${coord[0]}&travelmode=walking`;
+
+        window.open(mapsUrl, '_blank');
+    }
+}
