@@ -3,7 +3,7 @@ const subscriptionKey = 'BAqgYkgcYKIiyJfr7BOGSIFySA2Yw14pckF6xDum7uUvMptUSF19JQQ
 
 const stazioni = [
     { titolo: "Sede Croce Rossa", pos: [10.52188556692596, 44.4603971115963] },
-    { titolo: "Scenza CHARLIE", pos: [10.520888, 44.463778] },
+    { titolo: "Scena CHARLIE", pos: [10.520888, 44.463778] },
     { titolo: "Scena DELTA", pos: [10.5172802, 44.4521687] },
     { titolo: "Scena ECHO", pos: [10.5186218, 44.4534773] },
     { titolo: "Scena ALFA", pos: [10.5189889, 44.4542510] },
