@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Percorso Gara di Primo Soccorso</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, width=device-width">
+    <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.css">
+    <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js"></script>
+    <style>
+        html, body, #map { height: 100%; margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        const map = new atlas.Map('map', {
+            center: [10.990, 44.650],
+            zoom: 16,
+            authOptions: {
+                authType: 'subscriptionKey',
+                subscriptionKey: 'INSERISCI_LA_TUA_CHIAVE'
+            }
+        });
+
+        map.events.add('ready', function () {
+            const stazioni = [
+                { pos: [10.990, 44.650], titolo: "Inizio gara" },
+                { pos: [10.991, 44.651], titolo: "Scenario 1: incidente stradale" },
+                { pos: [10.992, 44.652], titolo: "Scenario 2: folgorazione" },
+                { pos: [10.993, 44.653], titolo: "Scenario 3: arresto cardiaco" }
+            ];
+
+            const positions = [];
+
+            stazioni.forEach(s => {
+                positions.push(s.pos);
+                const marker = new atlas.HtmlMarker({
+                    position: s.pos,
+                    text: "⛑️",
+                    color: "red"
+                });
+                map.markers.add(marker);
+
+                const popup = new atlas.Popup({
+                    content: `<div style="padding:5px;"><strong>${s.titolo}</strong></div>`,
+                    position: s.pos
+                });
+
+                map.events.add('click', marker, () => popup.open(map));
+            });
+
+            const line = new atlas.data.LineString(positions);
+            const shape = new atlas.Shape(new atlas.data.Feature(line));
+            const source = new atlas.source.DataSource();
+            map.sources.add(source);
+            source.add(shape);
+
+            const layer = new atlas.layer.LineLayer(source, null, {
+                strokeColor: "blue",
+                strokeWidth: 4
+            });
+            map.layers.add(layer);
+        });
+    </script>
+</body>
+</html>
