@@ -7,15 +7,80 @@
     <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.css">
     <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js"></script>
     <style>
-        html, body, #map { height: 100%; margin: 0; padding: 0; }
+        html, body, #map { height: 100%; margin: 0; padding: 0; font-family: sans-serif; }
+        #centerBtn, #exportBtn {
+            position: absolute;
+            top: 10px;
+            z-index: 1000;
+            padding: 8px 12px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #centerBtn { left: 10px; }
+        #exportBtn { left: 130px; }
+
+        #legend {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+            font-size: 14px;
+        }
+
+        #timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            #legend, #centerBtn, #exportBtn, #timer {
+                font-size: 12px;
+                padding: 6px;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <button id="centerBtn" onclick="map.setCamera({ center: [10.52188556692596, 44.4603971115963], zoom: 16 })">
+        Centra Mappa
+    </button>
+    <button id="exportBtn" onclick="exportGPX()">Esporta GPX</button>
+    <div id="timer">00:00</div>
+    <div id="legend">
+        <strong>Legenda:</strong><br>
+        <span style="color:green;">🟩 Partenza</span><br>
+        <span style="color:red;">🟥 Tappa</span><br>
+        <span style="color:blue;">🟦 Arrivo</span>
+    </div>
+
     <script>
+        const stazioni = [
+            { pos: [10.52188556692596, 44.4603971115963], titolo: "Sede Croce Rossa" }, // Partenza
+            { pos: [10.520888, 44.463778], titolo: "Scenza CHARLIE" },
+            { pos: [10.5172802, 44.4521687], titolo: "Scena DELTA" },
+            { pos: [10.5186218, 44.4534773], titolo: "Scena ECHO" },
+            { pos: [10.5189889, 44.4542510], titolo: "Scena ALFA" },
+            { pos: [10.5177559, 44.4555097], titolo: "Scena BRAVO" },
+            { pos: [10.52188556692596, 44.4603971115963], titolo: "Arrivo Croce Rossa" } // Arrivo
+        ];
+
         const map = new atlas.Map('map', {
             center: [10.52188556692596, 44.4603971115963],
             zoom: 16,
+            style: 'grayscale_dark',
             authOptions: {
                 authType: 'subscriptionKey',
                 subscriptionKey: 'BAqgYkgcYKIiyJfr7BOGSIFySA2Yw14pckF6xDum7uUvMptUSF19JQQJ99BFAC5RqLJioKNfAAAgAZMP45SF'
@@ -23,36 +88,46 @@
         });
 
         map.events.add('ready', function () {
-          const stazioni = [
-                { pos: [10.52188556692596, 44.4603971115963], titolo: "Sede Croce Rossa" },
-                { pos: [10.520888, 44.463778], titolo: "Scenza CHARLIE" },
-                { pos: [10.5172802, 44.4521687], titolo: "Scena DELTA" },
-                { pos: [10.5186218, 44.4534773], titolo: "Scena ECHO" },
-                { pos: [10.5189889, 44.4542510], titolo: "Scena ALFA" },
-                { pos: [10.5177559, 44.4555097], titolo: "Scena BRAVO" },
-                { pos: [10.52188556692596, 44.4603971115963], titolo: "Sede Croce Rossa" }
-        ];
-
-
             const positions = [];
+            let currentPopup = null;
 
-            stazioni.forEach(s => {
+            stazioni.forEach((s, index) => {
                 positions.push(s.pos);
-               const marker = new atlas.HtmlMarker({
-    position: s.pos,
-    htmlContent: `<div style="display:flex; align-items:center; background:white; border-radius:4px; padding:4px; box-shadow:0 0 4px rgba(0,0,0,0.2); font-size:14px;">
-        <span style="font-size:20px; margin-right:5px;">⛑️</span> 
-        ${s.titolo}
-    </div>`
-});
+
+                let borderColor = 'red';
+                if (index === 0) borderColor = 'green'; // Partenza
+                else if (index === stazioni.length - 1) borderColor = 'blue'; // Arrivo
+
+                const marker = new atlas.HtmlMarker({
+                    position: s.pos,
+                    htmlContent: `
+                        <div style="
+                            display:flex;
+                            align-items:center;
+                            background:white;
+                            border: 2px solid ${borderColor};
+                            border-radius:6px;
+                            padding:4px 8px;
+                            box-shadow:0 0 6px rgba(0,0,0,0.5);
+                            font-size:14px;
+                            color:black;
+                        ">
+                            <span style="font-size:20px; margin-right:6px;">⛑️</span>
+                            <span><strong>${index + 1}</strong>. ${s.titolo}</span>
+                        </div>`
+                });
                 map.markers.add(marker);
 
                 const popup = new atlas.Popup({
-                    content: `<div style="padding:5px;"><strong>${s.titolo}</strong></div>`,
+                    content: `<div style="padding:5px;"><strong>${index + 1}. ${s.titolo}</strong></div>`,
                     position: s.pos
                 });
 
-                map.events.add('click', marker, () => popup.open(map));
+                map.events.add('click', marker, () => {
+                    if (currentPopup) currentPopup.close();
+                    popup.open(map);
+                    currentPopup = popup;
+                });
             });
 
             const line = new atlas.data.LineString(positions);
@@ -62,11 +137,42 @@
             source.add(shape);
 
             const layer = new atlas.layer.LineLayer(source, null, {
-                strokeColor: "blue",
+                strokeColor: "deepskyblue",
                 strokeWidth: 4
             });
             map.layers.add(layer);
         });
+
+        // Timer visuale (cronometro)
+        let seconds = 0;
+        setInterval(() => {
+            seconds++;
+            const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            document.getElementById('timer').innerText = `${m}:${s}`;
+        }, 1000);
+
+        // Esportazione GPX
+        function exportGPX() {
+            let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Azure Maps" xmlns="http://www.topografix.com/GPX/1/1">
+<trk><name>Percorso Gara di Primo Soccorso</name><trkseg>
+`;
+            stazioni.forEach(s => {
+                gpx += `<trkpt lat="${s.pos[1]}" lon="${s.pos[0]}"></trkpt>\n`;
+            });
+
+            gpx += `</trkseg></trk></gpx>`;
+
+            const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'percorso.gpx';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
     </script>
 </body>
 </html>
