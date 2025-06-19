@@ -6,6 +6,7 @@
     <meta name="viewport" content="initial-scale=1, width=device-width">
     <link rel="stylesheet" href="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.css">
     <script src="https://atlas.microsoft.com/sdk/javascript/mapcontrol/2/atlas.min.js"></script>
+    <script src="https://atlas.microsoft.com/sdk/javascript/service/2/atlas-service.min.js"></script>
     <style>
         html, body, #map { height: 100%; margin: 0; padding: 0; font-family: sans-serif; }
         #centerBtn, #exportBtn {
@@ -20,45 +21,48 @@
         }
         #centerBtn { left: 10px; }
         #exportBtn { left: 130px; }
-
-        #legend {
+        #styleSelect {
             position: absolute;
+            top: 10px;
+            right: 130px;
+            z-index: 1000;
+            padding: 8px 12px;
+        }
+        #legend, #timer {
+            position: absolute;
+            z-index: 1000;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        #legend {
             bottom: 10px;
             right: 10px;
             background: white;
-            padding: 8px 12px;
-            border-radius: 6px;
             box-shadow: 0 0 5px rgba(0,0,0,0.3);
-            font-size: 14px;
         }
-
         #timer {
-            position: absolute;
             top: 10px;
             right: 10px;
-            z-index: 1000;
             background: rgba(0,0,0,0.7);
             color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
             font-weight: bold;
-        }
-
-        @media (max-width: 600px) {
-            #legend, #centerBtn, #exportBtn, #timer {
-                font-size: 12px;
-                padding: 6px;
-            }
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <button id="centerBtn" onclick="map.setCamera({ center: [10.52188556692596, 44.4603971115963], zoom: 16 })">
-        Centra Mappa
-    </button>
+
+    <button id="centerBtn" onclick="map.setCamera({ center: [10.52188556692596, 44.4603971115963], zoom: 16 })">Centra Mappa</button>
     <button id="exportBtn" onclick="exportGPX()">Esporta GPX</button>
+    <select id="styleSelect" onchange="map.setStyle(this.value)">
+        <option value="road">Mappa Diurna</option>
+        <option value="grayscale_dark">Mappa Notturna</option>
+        <option value="night">Modalità Notte</option>
+    </select>
+
     <div id="timer">00:00</div>
+
     <div id="legend">
         <strong>Legenda:</strong><br>
         <span style="color:green;">🟩 Partenza</span><br>
@@ -67,36 +71,36 @@
     </div>
 
     <script>
+        const subscriptionKey = 'BAqgYkgcYKIiyJfr7BOGSIFySA2Yw14pckF6xDum7uUvMptUSF19JQQJ99BFAC5RqLJioKNfAAAgAZMP45SF';
+
         const stazioni = [
-            { pos: [10.52188556692596, 44.4603971115963], titolo: "Sede Croce Rossa" }, // Partenza
-            { pos: [10.520888, 44.463778], titolo: "Scena CHARLIE" },
+            { pos: [10.52188556692596, 44.4603971115963], titolo: "Sede Croce Rossa" },
+            { pos: [10.520888, 44.463778], titolo: "Scenza CHARLIE" },
             { pos: [10.5172802, 44.4521687], titolo: "Scena DELTA" },
             { pos: [10.5186218, 44.4534773], titolo: "Scena ECHO" },
             { pos: [10.5189889, 44.4542510], titolo: "Scena ALFA" },
-            { pos: [10.5177559, 44.4555097], titolo: "Scena BRAVO" },
-            { pos: [10.52188556692596, 44.4603971115963], titolo: "Arrivo Croce Rossa" } // Arrivo
+            { pos: [10.5177559, 44.4555097], titolo: "Scena BRAVO" }
         ];
 
         const map = new atlas.Map('map', {
-            center: [10.52188556692596, 44.4603971115963],
+            center: stazioni[0].pos,
             zoom: 16,
-            style: 'grayscale_dark',
+            style: 'road',
             authOptions: {
                 authType: 'subscriptionKey',
-                subscriptionKey: 'BAqgYkgcYKIiyJfr7BOGSIFySA2Yw14pckF6xDum7uUvMptUSF19JQQJ99BFAC5RqLJioKNfAAAgAZMP45SF'
+                subscriptionKey: subscriptionKey
             }
         });
 
         map.events.add('ready', function () {
-            const positions = [];
             let currentPopup = null;
+            const datasource = new atlas.source.DataSource();
+            map.sources.add(datasource);
 
             stazioni.forEach((s, index) => {
-                positions.push(s.pos);
-
-                let borderColor = 'red';
-                if (index === 0) borderColor = 'green'; // Partenza
-                else if (index === stazioni.length - 1) borderColor = 'blue'; // Arrivo
+                let color = 'red';
+                if (index === 0) color = 'green';
+                else if (index === stazioni.length - 1) color = 'blue';
 
                 const marker = new atlas.HtmlMarker({
                     position: s.pos,
@@ -105,17 +109,17 @@
                             display:flex;
                             align-items:center;
                             background:white;
-                            border: 2px solid ${borderColor};
+                            border: 2px solid ${color};
                             border-radius:6px;
                             padding:4px 8px;
                             box-shadow:0 0 6px rgba(0,0,0,0.5);
                             font-size:14px;
-                            color:black;
                         ">
                             <span style="font-size:20px; margin-right:6px;">⛑️</span>
                             <span><strong>${index + 1}</strong>. ${s.titolo}</span>
                         </div>`
                 });
+
                 map.markers.add(marker);
 
                 const popup = new atlas.Popup({
@@ -130,20 +134,26 @@
                 });
             });
 
-            const line = new atlas.data.LineString(positions);
-            const shape = new atlas.Shape(new atlas.data.Feature(line));
-            const source = new atlas.source.DataSource();
-            map.sources.add(source);
-            source.add(shape);
+            // ROUTE SU STRADA
+            const coords = stazioni.map(s => `${s.pos[1]},${s.pos[0]}`).join(':');
+            const routeUrl = `https://atlas.microsoft.com/route/directions/json?api-version=1.0&query=${coords}&subscription-key=${subscriptionKey}`;
 
-            const layer = new atlas.layer.LineLayer(source, null, {
-                strokeColor: "deepskyblue",
-                strokeWidth: 4
-            });
-            map.layers.add(layer);
+            fetch(routeUrl)
+                .then(res => res.json())
+                .then(data => {
+                    const routeCoords = data.routes[0].legs.flatMap(leg => leg.points.map(p => [p.longitude, p.latitude]));
+                    const routeLine = new atlas.data.Feature(new atlas.data.LineString(routeCoords));
+                    datasource.add(routeLine);
+
+                    const routeLayer = new atlas.layer.LineLayer(datasource, null, {
+                        strokeColor: 'deepskyblue',
+                        strokeWidth: 4
+                    });
+                    map.layers.add(routeLayer);
+                });
         });
 
-        // Timer visuale (cronometro)
+        // TIMER GARA
         let seconds = 0;
         setInterval(() => {
             seconds++;
@@ -152,12 +162,12 @@
             document.getElementById('timer').innerText = `${m}:${s}`;
         }, 1000);
 
-        // Esportazione GPX
+        // ESPORTAZIONE GPX
         function exportGPX() {
             let gpx = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Azure Maps" xmlns="http://www.topografix.com/GPX/1/1">
-<trk><name>Percorso Gara di Primo Soccorso</name><trkseg>
-`;
+<trk><name>Percorso Gara di Primo Soccorso</name><trkseg>\n`;
+
             stazioni.forEach(s => {
                 gpx += `<trkpt lat="${s.pos[1]}" lon="${s.pos[0]}"></trkpt>\n`;
             });
@@ -166,7 +176,6 @@
 
             const blob = new Blob([gpx], { type: 'application/gpx+xml' });
             const url = URL.createObjectURL(blob);
-
             const a = document.createElement('a');
             a.href = url;
             a.download = 'percorso.gpx';
