@@ -8,7 +8,7 @@ const stazioni = [
     { titolo: "Scena ECHO", pos: [10.5186218, 44.4534773] },
     { titolo: "Scena ALFA", pos: [10.5189889, 44.4542510] },
     { titolo: "Scena BRAVO", pos: [10.5177559, 44.4555097] },
-    { titolo: "Ritorno Croce Rossa", pos: [10.52188556692590, 44.4603971115960] }
+    { titolo: "Ritorno Croce Rossa", pos: [10.522, 44.4600] }
 ];
 
 const map = new atlas.Map('map', {
